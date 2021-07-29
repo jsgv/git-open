@@ -1,0 +1,18 @@
+name: git-open
+version: "0.0.1"
+author: Jesus Galvan <jesgvn@gmail.com>
+about: Opens a git remote url in a web browser.
+args:
+    - commit:
+        short: c
+        long: commit
+        help: Opens current commit
+    - print:
+        short: p
+        long: print
+        help: Only print the url
+    - remote:
+        help: Sets the remote to open
+        default_value: origin
+        required: false
+        index: 1
