@@ -1,3 +1,4 @@
+use git2::Branch;
 use git2::Repository;
 use regex::Regex;
 use std::error::Error;
@@ -13,24 +14,46 @@ impl GitOpen {
         Ok(Self { repository })
     }
 
-    pub fn remote_url(&self, name: &str, is_commit: bool) -> Result<String, Box<dyn Error>> {
+    pub fn remote_url(
+        &self,
+        name: &str,
+        want_commit: bool,
+        want_branch: bool,
+    ) -> Result<String, Box<dyn Error>> {
         let remote_info = self.repository.find_remote(name)?;
         let url = remote_info.url().unwrap();
-
         let mut web_url = convert_git_url(url).unwrap();
 
-        if is_commit {
-            let commit_id = self.last_commit()?;
-            web_url = format!("{}/commit/{}", web_url, commit_id);
+        let reference = self.repository.head()?;
+
+        if want_commit {
+            let commit_id = reference.peel_to_commit()?.id();
+
+            web_url = self.create_commit_url(web_url, commit_id.to_string())?;
+        } else if want_branch {
+            let branch = Branch::wrap(reference);
+            let branch_name = branch.name().unwrap();
+
+            web_url = self.create_branch_url(web_url, branch_name.unwrap())?;
         }
 
         Ok(web_url)
     }
 
-    pub fn last_commit(&self) -> Result<String, Box<dyn Error>> {
-        let commit_id = self.repository.head()?.peel_to_commit()?.id();
+    fn create_commit_url(
+        &self,
+        web_url: String,
+        commit_id: String,
+    ) -> Result<String, Box<dyn Error>> {
+        Ok(format!("{}/commit/{}", web_url, commit_id))
+    }
 
-        Ok(commit_id.to_string())
+    fn create_branch_url(
+        &self,
+        web_url: String,
+        branch_name: &str,
+    ) -> Result<String, Box<dyn Error>> {
+        Ok(format!("{}/tree/{}", web_url, branch_name))
     }
 }
 

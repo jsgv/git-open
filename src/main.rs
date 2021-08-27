@@ -13,10 +13,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let remote_name = matches.value_of("remote").unwrap();
     let is_flag_print = matches.is_present("print");
     let is_flag_commit = matches.is_present("commit");
+    let is_flag_branch = matches.is_present("branch");
 
     let git_open = GitOpen::new()?;
 
-    let web_url = match git_open.remote_url(remote_name, is_flag_commit) {
+    let web_url = match git_open.remote_url(remote_name, is_flag_commit, is_flag_branch) {
         Ok(res) => res,
         Err(err) => {
             println!("{}", err);

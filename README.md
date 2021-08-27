@@ -15,6 +15,9 @@ git open upstream
 
 # open current commit
 git open -c
+
+# open current branch
+git open -b
 ```
 
 ### Installation

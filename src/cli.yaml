@@ -7,6 +7,10 @@ args:
         short: c
         long: commit
         help: Opens current commit
+    - branch:
+        short: b
+        long: branch
+        help: Opens current branch
     - print:
         short: p
         long: print
