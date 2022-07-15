@@ -1,107 +1,86 @@
-use git2::Branch;
 use git2::Repository;
-use regex::Regex;
-use std::error::Error;
+use std::{error::Error, process};
 
-pub struct GitOpen {
+mod provider;
+use provider::{GitHub, Provider};
+
+pub struct GitOpen<'a> {
     repository: Repository,
+    remote_name: &'a str,
 }
 
-impl GitOpen {
-    pub fn new() -> Result<Self, Box<dyn Error>> {
-        let repository = Repository::open(".")?;
-
-        Ok(Self { repository })
-    }
-
-    pub fn remote_url(
-        &self,
-        name: &str,
-        want_commit: bool,
-        want_branch: bool,
-    ) -> Result<String, Box<dyn Error>> {
-        let remote_info = self.repository.find_remote(name)?;
-        let url = remote_info.url().unwrap();
-        let mut web_url = convert_git_url(url).unwrap();
-
-        let reference = self.repository.head()?;
-
-        if want_commit {
-            let commit_id = reference.peel_to_commit()?.id();
-
-            web_url = self.create_commit_url(web_url, commit_id.to_string())?;
-        } else if want_branch {
-            let branch = Branch::wrap(reference);
-            let branch_name = branch.name().unwrap();
-
-            web_url = self.create_branch_url(web_url, branch_name.unwrap())?;
-        }
-
-        Ok(web_url)
-    }
-
-    fn create_commit_url(
-        &self,
-        web_url: String,
-        commit_id: String,
-    ) -> Result<String, Box<dyn Error>> {
-        Ok(format!("{}/commit/{}", web_url, commit_id))
-    }
-
-    fn create_branch_url(
-        &self,
-        web_url: String,
-        branch_name: &str,
-    ) -> Result<String, Box<dyn Error>> {
-        Ok(format!("{}/tree/{}", web_url, branch_name))
-    }
+pub enum Entity {
+    Repository,
+    Branch,
+    Commit,
+    // @todo
+    // MergeRequest,
 }
 
-// https://git-scm.com/docs/git-fetch#_git_urls
-fn convert_git_url(git_remote_url: &str) -> Option<String> {
-    // git@github.com:jsgv/git-open.git
-    let re_url_with_username = Regex::new(r"^(\S+)@(\S+):(\S+)(?:\.git$)").unwrap();
+impl<'a> GitOpen<'a> {
+    pub fn new(path: &str, remote_name: &'a str) -> Self {
+        let repository = Repository::open(path)
+            .unwrap_or_else(|_| panic!("Unable to open repository at path: {:?}", path));
 
-    // https://github.example.com/jsgv/git-open.git
-    let re_url_web = Regex::new(r"(http[s]?\S+)(?:\.git$)").unwrap();
-
-    if re_url_with_username.is_match(git_remote_url) {
-        for cap in re_url_with_username.captures_iter(git_remote_url) {
-            return Some(format!("https://{}/{}", &cap[2], &cap[3]));
-        }
-    } else if re_url_web.is_match(git_remote_url) {
-        for cap in re_url_web.captures_iter(git_remote_url) {
-            return Some(format!("{}", &cap[1]));
+        Self {
+            repository,
+            remote_name,
         }
     }
 
-    None
+    pub fn url(&self, entity: Entity) -> Result<String, Box<dyn Error>> {
+        let provider = GitHub {};
+
+        let remote = self
+            .repository
+            .find_remote(self.remote_name)
+            .unwrap_or_else(|e| {
+                println!("Could not retrieve remote: {}", e);
+                process::exit(1);
+            });
+
+        let remote_url = remote.url().unwrap_or_else(|| {
+            println!("Could not retrieve remote url.");
+            process::exit(1);
+        });
+
+        let head = self.repository.head().unwrap_or_else(|e| {
+            println!("Could not retrieve repository head: {}", e);
+            process::exit(1);
+        });
+
+        match entity {
+            Entity::Repository => provider.repository_url(remote_url),
+            Entity::Branch => {
+                let branch = head.shorthand().unwrap_or_else(|| {
+                    println!("Could not retrieve branch name");
+                    process::exit(1);
+                });
+                provider.branch_url(remote_url, branch)
+            }
+            Entity::Commit => {
+                let commit = head.target().unwrap_or_else(|| {
+                    println!("Could not retrieve commit.");
+                    process::exit(1);
+                });
+                provider.commit_url(remote_url, &commit.to_string())
+            }
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashMap;
 
     #[test]
-    fn converts_git_urls_correctly() {
-        let mut urls = HashMap::new();
+    fn can_be_created() {
+        GitOpen::new(".", "origin");
+    }
 
-        // source -> desired
-
-        urls.insert(
-            "git@github.com:jsgv/git-open.git",
-            String::from("https://github.com/jsgv/git-open"),
-        );
-
-        urls.insert(
-            "https://github.example.com/jsgv/git-open.git",
-            String::from("https://github.example.com/jsgv/git-open"),
-        );
-
-        for (key, value) in &urls {
-            let formatted = convert_git_url(key).unwrap();
-            assert_eq!(value, &formatted);
-        }
+    #[test]
+    #[should_panic]
+    fn panics_correctly() {
+        GitOpen::new("/tmp", "origin");
     }
 }

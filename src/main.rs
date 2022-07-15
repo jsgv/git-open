@@ -1,34 +1,41 @@
-extern crate clap;
-extern crate open;
-
-use clap::{load_yaml, App};
-use gitopen::GitOpen;
+use clap::Parser;
+use gitopen::{Entity, GitOpen};
 use std::error::Error;
 
+#[derive(Parser, Debug)]
+#[clap(author, version, about, long_about = None)]
+struct Cli {
+    #[clap(short, long, value_parser, conflicts_with_all = &["branch"])]
+    commit: bool,
+
+    #[clap(short, long, value_parser)]
+    branch: bool,
+
+    #[clap(short, long, value_parser, default_value = "origin")]
+    remote_name: String,
+
+    #[clap(short, long, value_parser)]
+    print: bool,
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
-    let yaml = load_yaml!("cli.yaml");
-    let app = App::from_yaml(yaml);
-    let matches = app.get_matches();
+    let args = Cli::parse();
 
-    let remote_name = matches.value_of("remote").unwrap();
-    let is_flag_print = matches.is_present("print");
-    let is_flag_commit = matches.is_present("commit");
-    let is_flag_branch = matches.is_present("branch");
-
-    let git_open = GitOpen::new()?;
-
-    let web_url = match git_open.remote_url(remote_name, is_flag_commit, is_flag_branch) {
-        Ok(res) => res,
-        Err(err) => {
-            println!("{}", err);
-            std::process::exit(1);
-        }
+    let entity = if args.branch {
+        Entity::Branch
+    } else if args.commit {
+        Entity::Commit
+    } else {
+        Entity::Repository
     };
 
-    if is_flag_print {
-        println!("{}", web_url);
+    let go = GitOpen::new(".", &args.remote_name);
+    let url = go.url(entity)?;
+
+    if args.print {
+        println!("{}", url);
     } else {
-        open::that(web_url).unwrap();
+        open::that(url).unwrap();
     }
 
     Ok(())
