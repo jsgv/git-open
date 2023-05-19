@@ -33,7 +33,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
 
     let path = match &args.path {
-        Some(path) => path.as_str(),
+        Some(path) => path,
         _ => ".",
     };
 
