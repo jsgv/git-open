@@ -22,7 +22,8 @@ pub trait Provider {
         }
 
         // https://github.example.com/jsgv/git-open.git
-        let re_web = Regex::new(r"(http[s]?\S+)(?:\.git$)")?;
+        // https://github.example.com/jsgv/git-open
+        let re_web = Regex::new(r"(http[s]?\S+)(?:\.git$)?")?;
 
         if let (true, Some(captures)) = (re_web.is_match(remote), re_web.captures(remote)) {
             let web = captures.get(1).unwrap().as_str().to_string();
