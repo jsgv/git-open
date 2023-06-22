@@ -21,6 +21,6 @@ doctest = false
 
 [dependencies]
 clap = { version = "3.2", features = ["derive"] }
-git2 = "0.14"
-open = "1"
+git2 = "0.17"
+open = "4"
 regex = "1"
