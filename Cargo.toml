@@ -21,6 +21,6 @@ doctest = false
 
 [dependencies]
 clap = { version = "3.2", features = ["derive"] }
-git2 = "0.17"
+git2 = { version = "0.17.2", default_features = false, features = [ "https", "openssl-sys" ] }
 open = "4"
 regex = "1"
