@@ -19,8 +19,10 @@ pub enum Entity {
 
 impl<'a> GitOpen<'a> {
     pub fn new(path: &str, remote_name: &'a str) -> Self {
-        let repository = Repository::open(path)
-            .unwrap_or_else(|_| panic!("Unable to open repository at path: {:?}", path));
+        let repository = Repository::open(path).unwrap_or_else(|_| {
+            println!("Unable to open repository at path: {:?}", path);
+            process::exit(1);
+        });
 
         Self {
             repository,

@@ -16,6 +16,9 @@ struct Cli {
 
     #[clap(short, long, value_parser)]
     print: bool,
+
+    #[clap()]
+    path: Option<String>,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -29,7 +32,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         Entity::Repository
     };
 
-    let go = GitOpen::new(".", &args.remote_name);
+    let path = match &args.path {
+        Some(path) => path,
+        _ => ".",
+    };
+
+    let go = GitOpen::new(path, &args.remote_name);
     let url = go.url(entity)?;
 
     if args.print {
