@@ -1,5 +1,7 @@
+use std::{path::PathBuf, process};
+
+use anyhow::Result;
 use git2::Repository;
-use std::{error::Error, process};
 
 mod provider;
 use provider::{GitHub, Provider};
@@ -13,14 +15,22 @@ pub enum Entity {
     Repository,
     Branch,
     Commit,
-    // @todo
-    // MergeRequest,
 }
 
 impl<'a> GitOpen<'a> {
-    pub fn new(path: &str, remote_name: &'a str) -> Self {
-        let repository = Repository::open(path)
-            .unwrap_or_else(|_| panic!("Unable to open repository at path: {:?}", path));
+    pub fn new(path: &PathBuf, remote_name: &'a str) -> Self {
+        let mut cwd = path.clone();
+
+        let repository = loop {
+            match Repository::open(&cwd) {
+                Ok(r) => break r,
+                Err(_e) => {
+                    if !cwd.pop() {
+                        panic!("Unable to open repository at path or parent: {:?}", path);
+                    }
+                }
+            }
+        };
 
         Self {
             repository,
@@ -28,7 +38,7 @@ impl<'a> GitOpen<'a> {
         }
     }
 
-    pub fn url(&self, entity: Entity) -> Result<String, Box<dyn Error>> {
+    pub fn url(&self, entity: Entity) -> Result<String> {
         let provider = GitHub {};
 
         let remote = self
@@ -53,7 +63,7 @@ impl<'a> GitOpen<'a> {
             Entity::Repository => provider.repository_url(remote_url),
             Entity::Branch => {
                 let branch = head.shorthand().unwrap_or_else(|| {
-                    println!("Could not retrieve branch name");
+                    println!("Could not retrieve branch name.");
                     process::exit(1);
                 });
                 provider.branch_url(remote_url, branch)
@@ -72,15 +82,25 @@ impl<'a> GitOpen<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::env;
 
     #[test]
     fn can_be_created() {
-        GitOpen::new(".", "origin");
+        let p = env::current_dir().unwrap();
+        GitOpen::new(&p, "origin");
+    }
+
+    #[test]
+    fn can_be_created_in_child_path() {
+        let mut p = env::current_dir().unwrap();
+        p.push("src");
+        GitOpen::new(&p, "origin");
     }
 
     #[test]
     #[should_panic]
     fn panics_correctly() {
-        GitOpen::new("/tmp", "origin");
+        let p = PathBuf::from("/tmp");
+        GitOpen::new(&p, "origin");
     }
 }

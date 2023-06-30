@@ -1,6 +1,8 @@
+use std::env;
+
+use anyhow::Result;
 use clap::Parser;
 use gitopen::{Entity, GitOpen};
-use std::error::Error;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -18,7 +20,7 @@ struct Cli {
     print: bool,
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> Result<()> {
     let args = Cli::parse();
 
     let entity = if args.branch {
@@ -29,7 +31,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         Entity::Repository
     };
 
-    let go = GitOpen::new(".", &args.remote_name);
+    let p = env::current_dir()?;
+
+    let go = GitOpen::new(&p, &args.remote_name);
     let url = go.url(entity)?;
 
     if args.print {

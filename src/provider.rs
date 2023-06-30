@@ -1,9 +1,9 @@
+use anyhow::{anyhow, Result};
 use regex::Regex;
-use std::error::Error;
 
 pub trait Provider {
-    fn branch_url(&self, remote: &str, branch: &str) -> Result<String, Box<dyn Error>>;
-    fn commit_url(&self, remote: &str, commit: &str) -> Result<String, Box<dyn Error>>;
+    fn branch_url(&self, remote: &str, branch: &str) -> Result<String>;
+    fn commit_url(&self, remote: &str, commit: &str) -> Result<String>;
 
     /// Converts a git remote into an url that can be opened in a browser.
     /// There are usually 2 main ways to define a git remote.
@@ -11,7 +11,7 @@ pub trait Provider {
     /// - git@
     /// This will attempt to extract the important parts of the remote and create
     /// a valid web url.
-    fn repository_url(&self, remote: &str) -> Result<String, Box<dyn Error>> {
+    fn repository_url(&self, remote: &str) -> Result<String> {
         // git@github.com:jsgv/git-open.git
         let re_git = Regex::new(r"^(\S+)@(\S+):(\S+)(?:\.git$)")?;
 
@@ -29,19 +29,19 @@ pub trait Provider {
             return Ok(web);
         }
 
-        Err(format!("Did not match any patterns for remote: {}", remote).into())
+        Err(anyhow!("Did not match any patterns for remote: {}", remote))
     }
 }
 
 pub struct GitHub {}
 
 impl Provider for GitHub {
-    fn branch_url(&self, remote: &str, branch: &str) -> Result<String, Box<dyn Error>> {
+    fn branch_url(&self, remote: &str, branch: &str) -> Result<String> {
         let web = self.repository_url(remote)?;
         Ok(format!("{}/tree/{}", web, branch))
     }
 
-    fn commit_url(&self, remote: &str, commit: &str) -> Result<String, Box<dyn Error>> {
+    fn commit_url(&self, remote: &str, commit: &str) -> Result<String> {
         let web = self.repository_url(remote)?;
         Ok(format!("{}/commit/{}", web, commit))
     }
