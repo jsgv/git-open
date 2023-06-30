@@ -81,8 +81,8 @@ impl<'a> GitOpen<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use std::env;
+    use super::GitOpen;
+    use std::{env, path::PathBuf};
 
     #[test]
     fn can_be_created() {

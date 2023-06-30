@@ -11,22 +11,22 @@ pub trait Provider {
     /// - git@
     /// This will attempt to extract the important parts of the remote and create
     /// a valid web url.
+    ///
+    /// Valid examples:
+    /// - git@github.com:jsgv/git-open.git
+    /// - git@github.com:jsgv/git-open
+    /// - https://github.example.com/jsgv/git-open.git
+    /// - https://github.example.com/jsgv/git-open
     fn repository_url(&self, remote: &str) -> Result<String> {
-        // git@github.com:jsgv/git-open.git
-        let re_git = Regex::new(r"^(\S+)@(\S+):(\S+)(?:\.git$)")?;
+        let r =
+            Regex::new(r"((git|ssh|http(s)?)|(git@([\w\.]+)))(:(//)?)([\w\.@:/\-~]+?)(\.git)?$")
+                .unwrap();
+        let caps = r.captures(remote).unwrap();
 
-        if let (true, Some(captures)) = (re_git.is_match(remote), re_git.captures(remote)) {
-            let domain = captures.get(2).unwrap().as_str();
-            let repository = captures.get(3).unwrap().as_str();
-            return Ok(format!("https://{}/{}", domain, repository));
-        }
-
-        // https://github.example.com/jsgv/git-open.git
-        let re_web = Regex::new(r"(http[s]?\S+)(?:\.git$)")?;
-
-        if let (true, Some(captures)) = (re_web.is_match(remote), re_web.captures(remote)) {
-            let web = captures.get(1).unwrap().as_str().to_string();
-            return Ok(web);
+        if let (Some(domain), Some(path)) = (caps.get(5), caps.get(8)) {
+            return Ok(format!("https://{}/{}", domain.as_str(), path.as_str()));
+        } else if let (Some(protocol), Some(path)) = (caps.get(2), caps.get(8)) {
+            return Ok(format!("{}://{}", protocol.as_str(), path.as_str()));
         }
 
         Err(anyhow!("Did not match any patterns for remote: {}", remote))
@@ -49,7 +49,7 @@ impl Provider for GitHub {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{GitHub, Provider};
     use std::collections::HashMap;
 
     #[test]
@@ -60,6 +60,11 @@ mod tests {
         urls.insert(
             "https://github.com/jsgv/git-open/tree/master",
             "https://github.com/jsgv/git-open.git",
+        );
+
+        urls.insert(
+            "https://github.com/jsgv/git-open/tree/master",
+            "https://github.com/jsgv/git-open",
         );
 
         urls.insert(
@@ -100,21 +105,26 @@ mod tests {
         let mut urls = HashMap::new();
 
         urls.insert(
+            "git@github.com:jsgv/git-open",
             "https://github.com/jsgv/git-open",
+        );
+
+        urls.insert(
             "git@github.com:jsgv/git-open.git",
-        );
-
-        urls.insert(
             "https://github.com/jsgv/git-open",
-            "https://github.com/jsgv/git-open.git",
         );
 
         urls.insert(
-            "https://github.example.com/jsgv/git-open",
-            "https://github.example.com/jsgv/git-open.git",
+            "https://github.com/jsgv/git-open.git",
+            "https://github.com/jsgv/git-open",
         );
 
-        for (expected, remote) in &urls {
+        urls.insert(
+            "https://github.example.com/jsgv/git-open.git",
+            "https://github.example.com/jsgv/git-open",
+        );
+
+        for (remote, expected) in &urls {
             let formatted = gh.repository_url(remote).unwrap();
             assert_eq!(expected, &formatted);
         }

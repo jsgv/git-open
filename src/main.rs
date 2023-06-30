@@ -2,6 +2,7 @@ use std::env;
 
 use anyhow::Result;
 use clap::Parser;
+
 use gitopen::{Entity, GitOpen};
 
 #[derive(Parser, Debug)]
