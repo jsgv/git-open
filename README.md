@@ -6,7 +6,7 @@ Open git repositories in a web browser with `git open`.
 
 This project was inspired by [git-open](https://github.com/paulirish/git-open).
 
-### Usage
+## Usage
 
 ```shell
 # open repository in browser
@@ -23,24 +23,29 @@ git open -b
 git open -r upstream
 
 # print only
-git open -p -b
+git open -p
 ```
 
-### Installation
+## Installation
 
+### Source
 You can clone the repo and install from source. This requires you to have rust installed.
 
 ```shell
-$ git clone git@github.com:jsgv/git-open.git
+git clone git@github.com:jsgv/git-open.git
+cd git-open
+make install
+```
 
-$ cd git-open
+### Cargo
 
-$ make install
+```shell
+cargo install cargo-git-open
 ```
 
 Or you can download one of the binaries from the releases section and place it
 somewhere in your `$PATH`.
 
-### Why?
+## Why?
 
 I wanted to learn Rust.
