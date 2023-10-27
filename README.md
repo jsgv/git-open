@@ -18,8 +18,13 @@ git open -c
 # open current branch
 git open -b
 
+# open pull request for current branch
+# local branch/head must match the pull request branch
+# only supported for GitHub
+git open --pr
+
 # default remote name is `origin`
-# can specify a different remote
+# can specify a different remote with `-r`
 git open -r upstream
 
 # print only
