@@ -3,18 +3,24 @@ use std::{path::PathBuf, process};
 use anyhow::Result;
 use git2::Repository;
 
-mod provider;
-use provider::{GitHub, Provider};
+mod providers;
+use providers::github::GitHub;
+use providers::Provider;
 
 pub struct GitOpen<'a> {
+    /// The Git repository with all its data.
     repository: Repository,
+    /// The remote we are interested in. Usually `origin`.
     remote_name: &'a str,
+
+    provider: Box<dyn Provider>,
 }
 
 pub enum Entity {
     Repository,
     Branch,
     Commit,
+    PullRequest,
 }
 
 impl<'a> GitOpen<'a> {
@@ -24,7 +30,7 @@ impl<'a> GitOpen<'a> {
         let repository = loop {
             match Repository::open(&cwd) {
                 Ok(r) => break r,
-                Err(_e) => {
+                Err(_) => {
                     if !cwd.pop() {
                         panic!("Unable to open repository at path or parent: {:?}", path);
                     }
@@ -32,15 +38,17 @@ impl<'a> GitOpen<'a> {
             }
         };
 
+        // TODO(jsgv): Support additional providers.
+        let provider = GitHub {};
+
         Self {
             repository,
             remote_name,
+            provider: Box::new(provider),
         }
     }
 
     pub fn url(&self, entity: Entity) -> Result<String> {
-        let provider = GitHub {};
-
         let remote = self
             .repository
             .find_remote(self.remote_name)
@@ -59,22 +67,21 @@ impl<'a> GitOpen<'a> {
             process::exit(1);
         });
 
+        let branch = head.shorthand().unwrap_or_else(|| {
+            println!("Could not retrieve branch name.");
+            process::exit(1);
+        });
+
+        let commit = head.target().unwrap_or_else(|| {
+            println!("Could not retrieve commit.");
+            process::exit(1);
+        });
+
         match entity {
-            Entity::Repository => provider.repository_url(remote_url),
-            Entity::Branch => {
-                let branch = head.shorthand().unwrap_or_else(|| {
-                    println!("Could not retrieve branch name.");
-                    process::exit(1);
-                });
-                provider.branch_url(remote_url, branch)
-            }
-            Entity::Commit => {
-                let commit = head.target().unwrap_or_else(|| {
-                    println!("Could not retrieve commit.");
-                    process::exit(1);
-                });
-                provider.commit_url(remote_url, &commit.to_string())
-            }
+            Entity::Repository => self.provider.web_url(remote_url),
+            Entity::Branch => self.provider.branch_url(remote_url, branch),
+            Entity::PullRequest => self.provider.pull_request_url(remote_url, branch),
+            Entity::Commit => self.provider.commit_url(remote_url, &commit.to_string()),
         }
     }
 }

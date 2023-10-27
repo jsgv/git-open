@@ -15,8 +15,13 @@ struct Cli {
     branch: bool,
 
     #[clap(short, long, value_parser, default_value = "origin")]
-    remote_name: String,
+    remote: String,
 
+    /// Local branch name must match remote branch name for pull request.
+    #[clap(long = "pr", value_parser)]
+    pull_request: bool,
+
+    /// Only print url.
     #[clap(short, long, value_parser)]
     print: bool,
 }
@@ -28,13 +33,15 @@ fn main() -> Result<()> {
         Entity::Branch
     } else if args.commit {
         Entity::Commit
+    } else if args.pull_request {
+        Entity::PullRequest
     } else {
         Entity::Repository
     };
 
     let p = env::current_dir()?;
 
-    let go = GitOpen::new(&p, &args.remote_name);
+    let go = GitOpen::new(&p, &args.remote);
     let url = go.url(entity)?;
 
     if args.print {

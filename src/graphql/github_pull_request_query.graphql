@@ -1,0 +1,12 @@
+query PullRequests($owner: String!, $name: String!, $headRefName: String!) {
+  repository(owner: $owner, name: $name) {
+    pullRequests(first: 100, headRefName: $headRefName) {
+      edges {
+        node {
+          url
+          title
+        }
+      }
+    }
+  }
+}

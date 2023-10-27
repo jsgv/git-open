@@ -1,6 +1,7 @@
 # git-open
 
 ![CI Status](https://github.com/jsgv/git-open/actions/workflows/ci.yml/badge.svg)
+[![crates.io](https://img.shields.io/crates/v/cargo-git-open.svg)](https://crates.io/crates/cargo-git-open)
 
 Open git repositories in a web browser with `git open`.
 
@@ -18,8 +19,13 @@ git open -c
 # open current branch
 git open -b
 
+# open pull request for current branch
+# local branch/head must match the pull request branch
+# only supported for GitHub
+git open --pr
+
 # default remote name is `origin`
-# can specify a different remote
+# can specify a different remote with `-r`
 git open -r upstream
 
 # print only
