@@ -1,6 +1,7 @@
 # git-open
 
 ![CI Status](https://github.com/jsgv/git-open/actions/workflows/ci.yml/badge.svg)
+[![crates.io](https://img.shields.io/crates/v/cargo-git-open.svg)](https://crates.io/crates/cargo-git-open)
 
 Open git repositories in a web browser with `git open`.
 
