@@ -1,6 +1,10 @@
 query PullRequests($owner: String!, $name: String!, $headRefName: String!) {
   repository(owner: $owner, name: $name) {
-    pullRequests(first: 100, headRefName: $headRefName) {
+    pullRequests(
+      first: 100
+      headRefName: $headRefName
+      orderBy: {field: CREATED_AT, direction: DESC}
+    ) {
       edges {
         node {
           url
